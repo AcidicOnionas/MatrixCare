@@ -35,7 +35,7 @@ export default function HomePage() {
         <div className={`text-center transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="animate-float-once">
             <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-6">
-              Matrix<span className="text-blue-600">Care</span>
+              Health<span className="text-blue-600">Track</span>
             </h1>
           </div>
           

@@ -1,9 +1,55 @@
 'use client'
 import Header from '../components/Header'
-import React from 'react'
-import { User, Lock } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { User, Lock, AlertCircle, Loader2 } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 
 export default function LoginPage() {
+  const { login, isLoading, isAuthenticated } = useAuth()
+  const router = useRouter()
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  })
+  const [error, setError] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard')
+    }
+  }, [isAuthenticated, router])
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+    // Clear error when user starts typing
+    if (error) setError('')
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+
+    if (!formData.email || !formData.password) {
+      setError('Please fill in all fields')
+      return
+    }
+
+    try {
+      await login({
+        email: formData.email,
+        password: formData.password
+      })
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please try again.')
+    }
+  }
+
   // Dummy function for header - no functionality needed yet
   const handleAddPatient = () => {
     // No functionality yet
@@ -35,7 +81,15 @@ export default function LoginPage() {
 
           {/* Login Form Box */}
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 backdrop-blur-sm">
-          <form className="space-y-6">
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              <span className="text-red-700 text-sm">{error}</span>
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Username/Email Field */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
@@ -50,7 +104,11 @@ export default function LoginPage() {
                   name="email"
                   type="email"
                   autoComplete="email"
-                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="Enter your email"
                 />
               </div>
@@ -70,7 +128,11 @@ export default function LoginPage() {
                   name="password"
                   type="password"
                   autoComplete="current-password"
-                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isLoading}
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-gray-50 focus:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="Enter your password"
                 />
               </div>
@@ -83,7 +145,10 @@ export default function LoginPage() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={isLoading}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                   Remember me
@@ -101,12 +166,33 @@ export default function LoginPage() {
             <div>
               <button
                 type="submit"
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105"
+                disabled={isLoading}
+                className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
-                Sign in
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign in'
+                )}
               </button>
             </div>
           </form>
+
+          {/* Sign Up Link */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Don't have an account?{' '}
+              <a 
+                href="/signup" 
+                className="text-blue-600 hover:text-blue-700 font-medium transition-colors duration-200"
+              >
+                Sign up here
+              </a>
+            </p>
+          </div>
 
           {/* Additional Options */}
           <div className="mt-6">
@@ -135,7 +221,7 @@ export default function LoginPage() {
         {/* Footer */}
         <div className="text-center">
           <p className="text-xs text-gray-500">
-            © 2024 MatrixCare. All rights reserved.
+            © 2024 HealthTrack. All rights reserved.
           </p>
         </div>
       </div>

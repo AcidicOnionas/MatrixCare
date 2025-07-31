@@ -1,5 +1,6 @@
-import React from 'react'
-import { User } from 'lucide-react'
+import React, { useState } from 'react'
+import { User, Trash2 } from 'lucide-react'
+import ConfirmationModal from './ConfirmationModal'
 
 interface Patient {
   id: number
@@ -19,9 +20,20 @@ interface Patient {
 interface PatientCardProps {
   patient: Patient
   onClick: () => void
+  onDelete?: (patientId: number) => void
 }
 
-export default function PatientCard({ patient, onClick }: PatientCardProps) {
+export default function PatientCard({ patient, onClick, onDelete }: PatientCardProps) {
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click when delete button is clicked
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = () => {
+    onDelete?.(patient.id)
+  }
   return (
     <div 
       className="card hover:shadow-md transition-shadow cursor-pointer"
@@ -47,10 +59,19 @@ export default function PatientCard({ patient, onClick }: PatientCardProps) {
               </div>
             </div>
             
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 flex items-center space-x-2">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 Provider CPR
               </span>
+              {onDelete && (
+                <button
+                  onClick={handleDelete}
+                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-full transition-colors"
+                  title="Delete patient"
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
             </div>
           </div>
 
@@ -78,6 +99,22 @@ export default function PatientCard({ patient, onClick }: PatientCardProps) {
           )}
         </div>
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Delete Patient"
+        message={`Are you sure you want to delete patient ${patient.name}?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        details={[
+          "This action cannot be undone",
+          "All patient data will be permanently removed"
+        ]}
+      />
     </div>
   )
 } 

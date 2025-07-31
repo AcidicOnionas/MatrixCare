@@ -3,7 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Header from '../../components/Header'
-import { ArrowLeft, User } from 'lucide-react'
+import { ArrowLeft, User, Edit3, Save, X } from 'lucide-react'
+import ProtectedRoute from '../../components/ProtectedRoute'
+import { tokenStorage } from '../../lib/auth'
+import VitalSignsCard from '../../components/VitalSignsCard'
 
 // Mock patient data with placeholder images
 const mockPatients = [
@@ -187,33 +190,130 @@ const chartingCategories = [
   }
 ]
 
-export default function PatientDetailPage() {
+function PatientDetailContent() {
   const router = useRouter()
   const params = useParams()
   const patientId = parseInt(params.id as string)
   const [patient, setPatient] = useState<any>(null)
   const [isLoaded, setIsLoaded] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+
+  // API base URL
+  const API_BASE_URL = 'http://localhost:8080/api'
+
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth: string): number => {
+    if (!dateOfBirth) return 0
+    const today = new Date()
+    const birthDate = new Date(dateOfBirth)
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+    
+    return age
+  }
 
   useEffect(() => {
-    // Find patient by ID
-    const foundPatient = mockPatients.find(p => p.id === patientId)
-    setPatient(foundPatient)
-    setTimeout(() => setIsLoaded(true), 100)
+    const fetchPatient = async () => {
+      try {
+        setLoading(true)
+        const token = tokenStorage.getToken()
+        const headers: any = {
+          'Content-Type': 'application/json'
+        }
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`
+        }
+        
+        const response = await fetch(`${API_BASE_URL}/patients/${patientId}`, {
+          headers
+        })
+        
+        if (!response.ok) {
+          throw new Error('Patient not found')
+        }
+        
+        const patientData = await response.json()
+        
+        // Transform backend data to frontend format
+        const transformedPatient = {
+          id: patientData.id,
+          firstName: patientData.firstName,
+          lastName: patientData.lastName,
+          name: `${patientData.firstName} ${patientData.lastName}`,
+          age: calculateAge(patientData.dateOfBirth),
+          dob: patientData.dateOfBirth,
+          sex: patientData.gender,
+          room: patientData.roomNumber || 'N/A',
+          physician: patientData.primaryPhysician || 'Not assigned',
+          medicalRecordNumber: patientData.medicalRecordNumber,
+          admissionDate: patientData.admissionDate,
+          emergencyContactName: patientData.emergencyContactName,
+          emergencyContactPhone: patientData.emergencyContactPhone,
+          allergies: patientData.allergies || 'None known',
+          diagnoses: patientData.diagnoses || 'None recorded',
+          diet: 'Regular', // This would come from additional patient data
+          adminInstructions: 'Standard care', // This would come from care plans
+          profileImage: `/api/placeholder/150/150`
+        }
+        
+        setPatient(transformedPatient)
+        setError(null)
+      } catch (err) {
+        console.error('Error fetching patient:', err)
+        setError('Failed to load patient data')
+        setPatient(null)
+      } finally {
+        setLoading(false)
+        setTimeout(() => setIsLoaded(true), 100)
+      }
+    }
+
+    if (patientId) {
+      fetchPatient()
+    }
   }, [patientId])
 
   const handleAddPatient = () => {
-    // This would open the add patient modal
+    // Navigate to dashboard where the modal works properly
+    router.push('/dashboard?showModal=true')
   }
 
   const handleBackToDashboard = () => {
     router.push('/dashboard')
   }
 
-  if (!patient) {
+
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Patient Not Found</h2>
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading Patient...</h2>
+          <p className="text-gray-600">Fetching patient data from database</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !patient) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{error || 'Patient Not Found'}</h2>
+          <p className="text-gray-600 mb-4">The patient you're looking for doesn't exist or couldn't be loaded.</p>
           <button
             onClick={handleBackToDashboard}
             className="btn-primary flex items-center space-x-2"
@@ -304,44 +404,31 @@ export default function PatientDetailPage() {
             </div>
           </div>
 
-          {/* Resident Charting Section */}
+          {/* Vital Signs Section */}
           <div className={`transition-all duration-1000 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Resident Charting</h2>
+              <h2 className="text-2xl font-bold text-gray-900">Vital Signs</h2>
               <button className="text-blue-600 hover:text-blue-700 font-medium">
-                View Look Back
+                View All History
               </button>
             </div>
 
-            {/* Charting Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {chartingCategories.map((category, index) => (
-                <div
-                  key={index}
-                  className={`transition-all duration-1000 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-                  style={{ transitionDelay: `${600 + index * 50}ms` }}
-                >
-                  <div className="card hover:shadow-lg transition-all duration-300 idle-state h-full">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <span className="text-lg">{category.icon}</span>
-                      <h3 className="font-semibold text-gray-900 text-sm leading-tight">
-                        {category.title}
-                      </h3>
-                    </div>
-                    <div className="space-y-1">
-                      {category.items.map((item, itemIndex) => (
-                        <p key={itemIndex} className="text-xs text-gray-600 hover:text-gray-800 cursor-pointer">
-                          {item}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
+            {/* Vital Signs Card Only */}
+            <div className="w-full">
+              {/* Special Vital Signs Card */}
+              <VitalSignsCard patientId={patientId} isLoaded={isLoaded} />
             </div>
           </div>
         </main>
       </div>
     </div>
+  )
+}
+
+export default function PatientDetailPage() {
+  return (
+    <ProtectedRoute>
+      <PatientDetailContent />
+    </ProtectedRoute>
   )
 } 

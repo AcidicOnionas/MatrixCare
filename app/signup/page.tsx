@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { User, Mail, Lock, Building2, Stethoscope } from 'lucide-react'
+import { User, Mail, Lock, Building2, Stethoscope, AlertCircle, Loader2 } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function SignupPage() {
+  const { register, isLoading, isAuthenticated } = useAuth()
   const router = useRouter()
   const [isLoaded, setIsLoaded] = useState(false)
+  const [error, setError] = useState('')
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -22,17 +25,55 @@ export default function SignupPage() {
     setIsLoaded(true)
   }, [])
 
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/dashboard')
+    }
+  }, [isAuthenticated, router])
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     })
+    // Clear error when user starts typing
+    if (error) setError('')
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Mock signup - just redirect to dashboard
-    router.push('/dashboard')
+    setError('')
+
+    // Validation
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+      setError('Please fill in all required fields')
+      return
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match')
+      return
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long')
+      return
+    }
+
+    try {
+      await register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        hospital: formData.hospital,
+        specialty: formData.specialty,
+        licenseNumber: formData.licenseNumber
+      })
+    } catch (err: any) {
+      setError(err.message || 'Registration failed. Please try again.')
+    }
   }
 
   const handleBackToHome = () => {
@@ -57,7 +98,7 @@ export default function SignupPage() {
               onClick={handleBackToHome}
               className="text-4xl font-bold text-blue-600 hover:text-blue-700 transition-colors duration-200 mb-2"
             >
-              MatrixCare
+              HealthTrack
             </button>
             <p className="text-lg text-gray-600">Join the future of healthcare management</p>
           </div>
@@ -67,6 +108,14 @@ export default function SignupPage() {
         <div className={`w-full max-w-md transition-all duration-1000 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}>
           <div className="card animate-float-once-delayed idle-state hover:shadow-xl transition-all duration-300">
             <h2 className="text-2xl font-bold text-gray-900 text-center mb-6">Create Your Account</h2>
+            
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+                <span className="text-red-700 text-sm">{error}</span>
+              </div>
+            )}
             
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Name Fields */}
@@ -236,9 +285,17 @@ export default function SignupPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full btn-primary py-3 text-lg font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 mt-6"
+                disabled={isLoading}
+                className="w-full btn-primary py-3 text-lg font-semibold rounded-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 mt-6 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
               >
-                Create Account
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  'Create Account'
+                )}
               </button>
             </form>
 

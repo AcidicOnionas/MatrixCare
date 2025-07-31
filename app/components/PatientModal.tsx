@@ -5,7 +5,8 @@ import { X, Edit2, User, Calendar, MapPin, Stethoscope, AlertTriangle, FileText,
 
 interface Patient {
   id?: number
-  name: string
+  firstName: string
+  lastName: string
   age: number
   dob: string
   sex: string
@@ -16,6 +17,8 @@ interface Patient {
   diet: string
   adminInstructions: string
   profileImage?: string
+  // Keep name as computed property for backward compatibility
+  name?: string
 }
 
 interface PatientModalProps {
@@ -28,7 +31,8 @@ interface PatientModalProps {
 export default function PatientModal({ isOpen, onClose, patient, onSave }: PatientModalProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState<Patient>({
-    name: '',
+    firstName: '',
+    lastName: '',
     age: 0,
     dob: '',
     sex: '',
@@ -42,11 +46,27 @@ export default function PatientModal({ isOpen, onClose, patient, onSave }: Patie
 
   useEffect(() => {
     if (patient) {
-      setFormData(patient)
+      // If patient has separate firstName/lastName, use them
+      if (patient.firstName && patient.lastName) {
+        setFormData(patient)
+      } else if (patient.name) {
+        // If patient has combined name, split it
+        const nameParts = patient.name.trim().split(' ')
+        const firstName = nameParts[0] || ''
+        const lastName = nameParts.slice(1).join(' ') || 'Unknown'
+        setFormData({
+          ...patient,
+          firstName,
+          lastName
+        })
+      } else {
+        setFormData(patient)
+      }
       setIsEditing(false) // Always start in view mode for existing patients
     } else {
       setFormData({
-        name: '',
+        firstName: '',
+        lastName: '',
         age: 0,
         dob: '',
         sex: '',
@@ -63,8 +83,28 @@ export default function PatientModal({ isOpen, onClose, patient, onSave }: Patie
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave(formData)
-    setIsEditing(false)
+    
+    // Create confirmation message with data summary
+    const summary = `
+Patient Information:
+• Name: ${formData.firstName} ${formData.lastName}
+• Age: ${formData.age}
+• Date of Birth: ${formData.dob}
+• Sex: ${formData.sex}
+• Room: ${formData.room}
+• Physician: ${formData.physician}
+• Allergies: ${formData.allergies || 'None'}
+• Diet: ${formData.diet || 'Not specified'}
+• Diagnoses: ${formData.diagnoses || 'None'}
+• Instructions: ${formData.adminInstructions || 'None'}
+
+Do you want to save this patient?`
+
+    // Show native browser confirmation dialog
+    if (window.confirm(summary)) {
+      onSave(formData)
+      setIsEditing(false)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -101,13 +141,13 @@ export default function PatientModal({ isOpen, onClose, patient, onSave }: Patie
                 alt={patient.name}
                 className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg"
                 onError={(e) => {
-                  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(patient.name)}&size=64&background=e5e7eb&color=374151`
+                  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(patient.name || patient.firstName + ' ' + patient.lastName || 'Patient')}&size=64&background=e5e7eb&color=374151`
                 }}
               />
             )}
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
-                {patient ? (isEditing ? 'Edit Patient' : formData.name) : 'Add New Patient'}
+                {patient ? (isEditing ? 'Edit Patient' : `${formData.firstName} ${formData.lastName}`) : 'Add New Patient'}
               </h2>
               {patient && !isEditing && (
                 <p className="text-gray-600">Room {formData.room} • {formData.physician}</p>
@@ -139,12 +179,26 @@ export default function PatientModal({ isOpen, onClose, patient, onSave }: Patie
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Patient Name
+                  First Name
                 </label>
                 <input
                   type="text"
-                  name="name"
-                  value={formData.name}
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
@@ -183,17 +237,15 @@ export default function PatientModal({ isOpen, onClose, patient, onSave }: Patie
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Sex
                 </label>
-                <select
+                <input
+                  type="text"
                   name="sex"
                   value={formData.sex}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="M or F"
                   required
-                >
-                  <option value="">Select Sex</option>
-                  <option value="M">Male</option>
-                  <option value="F">Female</option>
-                </select>
+                />
               </div>
 
               <div>
@@ -293,7 +345,7 @@ export default function PatientModal({ isOpen, onClose, patient, onSave }: Patie
                 type="submit"
                 className="btn-primary"
               >
-                {patient ? 'Update Patient' : 'Add Patient'}
+                {patient ? 'Save Changes' : 'Save Patient'}
               </button>
             </div>
           </form>
@@ -307,7 +359,7 @@ export default function PatientModal({ isOpen, onClose, patient, onSave }: Patie
                   <User className="w-5 h-5 text-blue-600" />
                   <div>
                     <p className="text-sm font-medium text-gray-500">Patient Information</p>
-                    <p className="text-lg font-semibold text-gray-900">{formData.name}</p>
+                    <p className="text-lg font-semibold text-gray-900">{`${formData.firstName} ${formData.lastName}`}</p>
                   </div>
                 </div>
 

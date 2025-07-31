@@ -1,18 +1,25 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Bell, User, HelpCircle } from 'lucide-react'
+import { Plus, Bell, User, HelpCircle, LogOut, ChevronDown } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 interface HeaderProps {
   onAddPatient: () => void
 }
 
 export default function Header({ onAddPatient }: HeaderProps) {
+  const { user, logout } = useAuth()
   const router = useRouter()
+  const [showUserMenu, setShowUserMenu] = useState(false)
 
   const handleLogoClick = () => {
     router.push('/')
+  }
+
+  const handleLogout = () => {
+    logout()
   }
 
   return (
@@ -26,7 +33,7 @@ export default function Header({ onAddPatient }: HeaderProps) {
                 className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors duration-200" 
                 onClick={handleLogoClick}
               >
-                MatrixCare
+                HealthTrack
               </button>
               <div className="ml-2 text-sm text-gray-500">CareAssist</div>
             </div>
@@ -52,6 +59,7 @@ export default function Header({ onAddPatient }: HeaderProps) {
             <a href="#" className="text-gray-500 hover:text-gray-700 px-3 py-2 text-sm font-medium">
               Manage My Residents
             </a>
+
           </nav>
 
           {/* Right side actions */}
@@ -71,13 +79,46 @@ export default function Header({ onAddPatient }: HeaderProps) {
             <button className="p-2 text-gray-400 hover:text-gray-500">
               <HelpCircle size={20} />
             </button>
-            
-            <a 
-              href="/login" 
-              className="text-sm text-gray-700 hover:text-blue-600 font-medium"
-            >
-              Login
-            </a>
+
+            {/* User Menu */}
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-2 text-sm text-gray-700 hover:text-blue-600 font-medium p-2 rounded-md hover:bg-gray-50"
+                >
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <User size={16} className="text-blue-600" />
+                  </div>
+                  <span>{user.firstName}</span>
+                  <ChevronDown size={16} />
+                </button>
+
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-50">
+                    <div className="px-4 py-3 border-b border-gray-200">
+                      <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                      <p className="text-sm text-gray-500">{user.email}</p>
+                      <p className="text-xs text-gray-400">{user.role} • {user.hospital}</p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                    >
+                      <LogOut size={16} />
+                      <span>Sign out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <a 
+                href="/login"
+                className="text-sm text-gray-700 hover:text-blue-600 font-medium"
+              >
+                Login
+              </a>
+            )}
           </div>
         </div>
       </div>
