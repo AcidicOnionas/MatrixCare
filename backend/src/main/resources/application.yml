@@ -1,0 +1,61 @@
+# MatrixCare Application Configuration
+spring:
+  # Database Configuration
+  datasource:
+    url: jdbc:mysql://localhost:3306/matrixcare?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: ${DB_PASSWORD:Ming080329@}  # Replace with your actual MySQL root password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1200000
+
+  # JPA/Hibernate Configuration
+  jpa:
+    hibernate:
+      ddl-auto: none  # Don't auto-create tables, we use our SQL schema
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: true
+        use_sql_comments: true
+    open-in-view: false
+
+  # JSON Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    time-zone: America/New_York
+
+# Server Configuration
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+# CORS Configuration (handled in SecurityConfig.java)
+
+# Logging Configuration
+logging:
+  level:
+    com.matrixcare: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Management endpoints (for monitoring)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized 
