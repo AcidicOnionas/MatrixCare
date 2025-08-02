@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { X, Edit2, User, Calendar, MapPin, Stethoscope, AlertTriangle, FileText, Utensils, Clipboard } from 'lucide-react'
+import ConfirmationModal from './ConfirmationModal'
 
 interface Patient {
   id?: number
@@ -30,6 +31,8 @@ interface PatientModalProps {
 
 export default function PatientModal({ isOpen, onClose, patient, onSave }: PatientModalProps) {
   const [isEditing, setIsEditing] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [confirmationDetails, setConfirmationDetails] = useState<string[]>([])
   const [formData, setFormData] = useState<Patient>({
     firstName: '',
     lastName: '',
@@ -84,27 +87,29 @@ export default function PatientModal({ isOpen, onClose, patient, onSave }: Patie
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Create confirmation message with data summary
-    const summary = `
-Patient Information:
-• Name: ${formData.firstName} ${formData.lastName}
-• Age: ${formData.age}
-• Date of Birth: ${formData.dob}
-• Sex: ${formData.sex}
-• Room: ${formData.room}
-• Physician: ${formData.physician}
-• Allergies: ${formData.allergies || 'None'}
-• Diet: ${formData.diet || 'Not specified'}
-• Diagnoses: ${formData.diagnoses || 'None'}
-• Instructions: ${formData.adminInstructions || 'None'}
+    // Create confirmation details array
+    const details = [
+      `Name: ${formData.firstName} ${formData.lastName}`,
+      `Age: ${formData.age}`,
+      `Date of Birth: ${formData.dob}`,
+      `Sex: ${formData.sex}`,
+      `Room: ${formData.room}`,
+      `Physician: ${formData.physician}`,
+      `Allergies: ${formData.allergies || 'None'}`,
+      `Diet: ${formData.diet || 'Not specified'}`,
+      `Diagnoses: ${formData.diagnoses || 'None'}`,
+      `Instructions: ${formData.adminInstructions || 'None'}`
+    ]
 
-Do you want to save this patient?`
+    // Show confirmation modal
+    setConfirmationDetails(details)
+    setShowConfirmModal(true)
+  }
 
-    // Show native browser confirmation dialog
-    if (window.confirm(summary)) {
-      onSave(formData)
-      setIsEditing(false)
-    }
+  const confirmSave = () => {
+    onSave(formData)
+    setIsEditing(false)
+    setShowConfirmModal(false)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -434,6 +439,19 @@ Do you want to save this patient?`
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={confirmSave}
+        title="Confirm Patient Save"
+        message="Please review the patient information before saving:"
+        confirmText="Save Patient"
+        cancelText="Cancel"
+        type="info"
+        details={confirmationDetails}
+      />
     </div>
   )
 } 

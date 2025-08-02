@@ -1,0 +1,90 @@
+# Dependencies
+node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Next.js
+/.next/
+/out/
+
+# Production
+/build
+
+# Misc
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local env files
+.env*.local
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+
+# Automation and Testing
+automation.py
+automation.js
+requirements-automation.txt
+test_playwright.py
+
+# Videos (generated content)
+videos/
+*.webm
+*.mp4
+*.avi
+*.mov
+
+# Database files and scripts
+*.sql
+db.sql
+auth-schema.sql
+charting-schema.sql
+vital-signs-schema.sql
+create-vital-signs-table.sql
+sample-data.sql
+insert-test-users.sql
+alter-gender-to-varchar.sql
+
+# Shell scripts and utilities
+*.sh
+*.ps1
+create-test-users.sh
+create-test-users.ps1
+
+# Backend (if it's for development/testing only)
+backend/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
